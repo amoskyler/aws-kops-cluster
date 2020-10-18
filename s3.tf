@@ -1,5 +1,5 @@
 module "s3_label" {
-  source     = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.16.0"
+  source     = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.19.2"
   context    = module.kops_label.context
   attributes = ["state"]
 }
@@ -8,7 +8,7 @@ locals {
   default_s3_actions = ["s3:Get*", "s3:List*"]
   default_s3_resources = [
     "arn:aws:s3:::${aws_s3_bucket.kops_state.id}",
-    "arn:aws:s3:::${aws_s3_bucket.kops_state.id}/${local.cluster_dns}/*",
+    "arn:aws:s3:::${aws_s3_bucket.kops_state.id}/${local.cluster_name}/*",
   ]
 
   lb_access_log_account = {
@@ -77,7 +77,7 @@ resource "aws_s3_bucket" "kops_state" {
 
   lifecycle_rule {
     enabled = true
-    prefix  = local.cluster_dns
+    prefix  = local.cluster_name
 
     noncurrent_version_expiration {
       days = 90

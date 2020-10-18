@@ -177,6 +177,12 @@ variable "secrets_path" {
   description = "Path to put CA and SSH keys into"
 }
 
+variable "cluster_config_path" {
+  type        = string
+  default     = "/cluster_configs"
+  description = "Path to write kops cluster yaml output"
+}
+
 variable "ssh_access_cidrs" {
   type        = list(string)
   default     = []
@@ -201,6 +207,12 @@ variable "public_record_name" {
   description = "Subdomain to use for the additional public record pointing to the master API"
 }
 
+variable "cluster_name" {
+  type        = string
+  default     = ""
+  description = "The name to give the cluster"
+}
+
 variable "cluster_dns" {
   type        = string
   default     = ""
@@ -211,6 +223,18 @@ variable "cluster_dns_type" {
   type        = string
   default     = "Private"
   description = "The topology for the cluster dns zone (Private or Public)"
+}
+
+variable "cluster_network_topology" {
+  type        = string
+  default     = "Private"
+  description = "The topology for the cluster subnets zone (Private or Public)"
+}
+
+variable "cluster_api_type" {
+  type        = string
+  default     = "loadbalancer"
+  description = "If DNS or a Loadbalancer should be assigned to the cluster api"
 }
 
 variable "tf_bucket" {
@@ -255,6 +279,12 @@ variable "certificate_arn" {
   description = "The ACM Certificate ARN to use if acm_module_state is not set"
 }
 
+variable "use_certificate" {
+  type        = bool
+  default     = true
+  description = "The ACM Certificate ARN to use if acm_module_state is not set"
+}
+
 variable "vpc_module_state" {
   type        = string
   default     = ""
@@ -295,6 +325,12 @@ variable "private_subnet_cidrs" {
   type        = list(string)
   default     = []
   description = "List of private subnet cidrs. Can be read from vpc remote state"
+}
+
+variable "disable_subnet_tags" {
+  type        = string
+  default     = false
+  description = "Disable kops from managing all subnet tags"
 }
 
 variable "aws_region" {

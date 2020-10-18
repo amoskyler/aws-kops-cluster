@@ -1,6 +1,6 @@
 
 output "cluster_name" {
-  value = local.cluster_dns
+  value = local.cluster_name
 }
 
 output "kops_state_store" {

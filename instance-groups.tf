@@ -17,13 +17,13 @@ data "null_data_source" "instance_groups" {
       element(data.aws_availability_zones.available.names, count.index % var.max_availability_zones)
     )
 
-    rendered = templatefile("${path.module}/templates/instance-group.yaml", {
-      cluster_dns            = local.cluster_dns
+    rendered = templatefile("${path.module}/templates/instance-group.yaml.tpl", {
+      cluster_name           = local.cluster_name
       namespace              = var.namespace
       stage                  = var.stage
       region                 = var.region
       node_role              = "Node"
-      public_ip              = false
+      public_ip              = lookup(var.instance_groups[floor(count.index / 3)], "associate_public_ip", false)
       autoscaler             = true
       image                  = lookup(var.instance_groups[floor(count.index / 3)], "image", "")
       instance_name          = lookup(var.instance_groups[floor(count.index / 3)], "name")
@@ -67,8 +67,8 @@ data "null_data_source" "master_instance_groups" {
 
   inputs = {
     name = "masters"
-    rendered = templatefile("${path.module}/templates/instance-group.yaml", {
-      cluster_dns            = local.cluster_dns
+    rendered = templatefile("${path.module}/templates/instance-group.yaml.tpl", {
+      cluster_name           = local.cluster_name
       namespace              = var.namespace
       stage                  = var.stage
       region                 = var.region
@@ -98,10 +98,11 @@ data "null_data_source" "master_instance_groups" {
 }
 
 data "null_data_source" "bastion_instance_group" {
+  count = var.bastion_default_instance_count < 1 ? 0 : 1
   inputs = {
     name = "bastions"
-    rendered = templatefile("${path.module}/templates/instance-group.yaml", {
-      cluster_dns            = local.cluster_dns
+    rendered = templatefile("${path.module}/templates/instance-group.yaml.tpl", {
+      cluster_name           = local.cluster_name
       namespace              = var.namespace
       stage                  = var.stage
       region                 = var.region

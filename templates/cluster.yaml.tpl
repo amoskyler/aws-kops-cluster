@@ -1,20 +1,21 @@
 apiVersion: kops.k8s.io/v1alpha2
 kind: Cluster
 metadata:
-  name: ${cluster_dns}
+  name: ${cluster_name}
   labels:
-    kops.k8s.io/cluster: ${cluster_dns}
+    kops.k8s.io/cluster: ${cluster_name}
 spec:
   cloudProvider: aws
   kubernetesVersion: ${k8s_version}
-  masterPublicName: ${cluster_dns}
-  masterInternalName: internal.${cluster_dns}
+  masterPublicName: ${cluster_name}
+  masterInternalName: internal.${cluster_name}
   networkID: ${vpc_id}
   networkCIDR: ${vpc_cidr}
   awsRegion: ${aws_region}
   dnsZone: ${cluster_zone_id}
   nonMasqueradeCIDR: ${cluster_cidr}
-  configBase: s3://${kops_bucket_name}/${cluster_dns}
+  configBase: s3://${kops_bucket_name}/${cluster_name}
+  disableSubnetTags: ${disable_subnet_tags}
   authorization:
     rbac: {}
   iam:
@@ -53,8 +54,12 @@ spec:
 %{ endfor ~}
 %{ endif ~}
   api:
+%{ if cluster_api_type == "dns" ~}
+    dns: {}
+%{ else ~}
     loadBalancer:
       type: ${lb_type}
+%{ endif ~}
 %{ if certificate_arn != "" ~}
       sslCertificate: "${certificate_arn}"
 %{ endif ~}
@@ -114,7 +119,7 @@ spec:
     Namespace: ${namespace}
     Stage: ${stage}
     Region: ${region}
-    kops.k8s.io/cluster: ${cluster_dns}
+    kops.k8s.io/cluster: ${cluster_name}
 %{ if oidc_ca_file != "" || oidc_ca_content != "" ~}
   fileAssets:
   - name: oidc-issuer-ca
@@ -124,34 +129,30 @@ spec:
       ${indent(6, oidc_ca_content == "" ? file(oidc_ca_file) : oidc_ca_content)}
 %{ endif ~}
   etcdClusters:
-  - etcdMembers:
+  - cpuRequest: 200m
+    etcdMembers:
 %{ for index, member in etcd_members ~}
     - encryptedVolume: true
       instanceGroup: ${member}
       name: master-${index}
-      volumeType: ${etcd_main_volume_type}
-      volumeSize: ${etcd_main_volume_size}
 %{ if etcd_main_volume_iops != 0 ~}
       volumeIops: ${etcd_main_volume_iops}
 %{ endif ~}
 %{ endfor ~}
     name: main
-    version: ${etcd_version}
     enableEtcdTLS: true
-  - etcdMembers:
+    memoryRequest: 156Mi
+  - cpuRequest: 120m
+    etcdMembers:
 %{ for index, member in etcd_members ~}
     - encryptedVolume: true
       instanceGroup: ${member}
       name: master-${index}
-      volumeType: ${etcd_event_volume_type}
-      volumeSize: ${etcd_event_volume_size}
 %{ if etcd_main_volume_iops != 0 ~}
       volumeIops: ${etcd_event_volume_iops}
 %{ endif ~}
 %{ endfor ~}
     name: events
-    version: ${etcd_version}
-    cpuRequest: 120m
     memoryRequest: 156Mi
     enableEtcdTLS: true
   subnets:
@@ -173,9 +174,9 @@ spec:
     dns:
       type: ${dns_type}
     masters: private
-    nodes: private
-    bastion:
-      idleTimeoutSeconds: 900
-%{ if bastion_public_name != "" ~}
-      bastionPublicName: ${bastion_public_name}.${cluster_dns}
-%{ endif ~}
+    nodes: public
+#     bastion:
+#       idleTimeoutSeconds: 900
+# %{ if bastion_public_name != "" ~}
+#       bastionPublicName: ${bastion_public_name}.${cluster_name}
+# %{ endif ~}

@@ -1,21 +1,21 @@
 module "masters_sg_label" {
-  source  = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.16.0"
+  source  = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.19.2"
   context = module.label.context
   name    = "masters"
 }
 
 resource "aws_security_group" "masters" {
-  name        = "masters.${local.cluster_dns}"
+  name        = "masters.${local.cluster_name}"
   tags        = module.masters_sg_label.tags
   description = "Controls traffic to the master nodes of cluster ${local.cluster_name}"
   vpc_id      = local.vpc_id
 
-  egress {
-    to_port     = 0
-    from_port   = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  # egress {
+  #   to_port     = 0
+  #   from_port   = 0
+  #   protocol    = "-1"
+  #   cidr_blocks = ["0.0.0.0/0"]
+  # }
 }
 
 resource "aws_security_group_rule" "masters_ingress" {
@@ -31,7 +31,7 @@ resource "aws_security_group_rule" "masters_ingress" {
 
 resource "aws_security_group" "public_loadbalancer" {
   count       = var.create_public_api_record ? 1 : 0
-  name        = "public-api-elb.${local.cluster_dns}"
+  name        = "public-api-elb.${local.cluster_name}"
   tags        = module.api_loadbalancer_label.tags
   description = "Allows public HTTPS inbound traffic to API Server"
   vpc_id      = local.vpc_id

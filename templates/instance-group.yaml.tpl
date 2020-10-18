@@ -3,7 +3,7 @@ kind: InstanceGroup
 metadata:
   name: ${instance_group_name}
   labels:
-    kops.k8s.io/cluster: ${cluster_dns}
+    kops.k8s.io/cluster: ${cluster_name}
     kops.k8s.io/instancegroup: ${instance_group_name}
 spec:
   cloudLabels:
@@ -12,10 +12,10 @@ spec:
     Region: ${region}
     InstanceType: ${instance_name}
     InstanceGroup: ${instance_group_name}
-    kops.k8s.io/cluster: ${cluster_dns}
-    kubernetes.io/cluster/${cluster_dns}: owned
+    kops.k8s.io/cluster: ${cluster_name}
+    kubernetes.io/cluster/${cluster_name}: owned
 %{ if autoscaler ~}
-    k8s.io/cluster-autoscaler/enabled: \"\"
+    k8s.io/cluster-autoscaler/enabled: ""
     k8s.io/cluster-autoscaler/node-template/label/InstanceType: ${instance_name}
     k8s.io/cluster-autoscaler/node-template/label/InstanceGroup: ${instance_group_name}
 %{ endif ~}
@@ -42,9 +42,9 @@ spec:
   %{ endif }
 %{ endif ~}
 %{ if autospotting_enabled ~}
-  maxPrice: \"${autospotting_max_price}\"
+  maxPrice: "${autospotting_max_price}"
   mixedInstancesPolicy:
-    onDemandAboveBase: "${autospotting_on_demand}"
+    onDemandAboveBase: ${autospotting_on_demand}
     # https://github.com/kubernetes/kops/issues/7405
     # spotAllocationStrategy: diversified
     instances:
@@ -58,10 +58,10 @@ spec:
     Region: ${region}
     InstanceType: ${instance_name}
     InstanceGroup: ${instance_group_name}
-    kops.k8s.io/cluster: ${cluster_dns}
+    kops.k8s.io/cluster: ${cluster_name}
     kops.k8s.io/instancegroup: ${instance_group_name}
 %{ if autospotting_enabled ~}
-    spot: \"true\"
+    spot: "true"
 %{ endif ~}
   role: ${node_role}
   subnets: 

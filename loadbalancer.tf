@@ -1,9 +1,9 @@
 locals {
-  api_log_prefix = "api/logs/${local.cluster_dns}"
+  api_log_prefix = "api/logs/${local.cluster_name}"
 }
 
 module "api_loadbalancer_label" {
-  source     = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.16.0"
+  source     = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.19.2"
   context    = module.label.context
   attributes = ["api"]
 }
@@ -43,7 +43,7 @@ resource "aws_elb" "public_api" {
 }
 
 module "public_api_record" {
-  source      = "git::https://github.com/goci-io/aws-route53-records.git?ref=tags/0.3.0"
+  source      = "git::https://github.com/goci-io/aws-route53-records.git?ref=tags/0.4.1"
   enabled     = var.create_public_api_record
   hosted_zone = local.cluster_dns
   alias_records = [
