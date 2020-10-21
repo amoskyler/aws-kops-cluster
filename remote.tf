@@ -19,24 +19,14 @@ data "terraform_remote_state" "acm" {
   }
 }
 
-data "terraform_remote_state" "dns" {
-  count   = var.dns_module_state == "" ? 0 : 1
-  backend = "s3"
-
-  config = {
-    bucket = var.tf_bucket
-    key    = var.dns_module_state
-  }
-}
-
 locals {
   acm_module_state = var.acm_module_state == "" && var.dns_module_state != "" && var.certificate_arn == "" ? var.dns_module_state : var.acm_module_state
 
   vpc_id          = var.vpc_id == "" ? try(data.terraform_remote_state.vpc[0].outputs.vpc_id, "") : var.vpc_id
   vpc_cidr        = var.vpc_cidr == "" ? try(data.terraform_remote_state.vpc[0].outputs.vpc_cidr, "") : var.vpc_cidr
   certificate_arn = var.certificate_arn == "" && var.use_certificate == true ? data.terraform_remote_state.acm[0].outputs.certificate_arn : var.certificate_arn
-  cluster_dns     = var.cluster_dns == "" ? try(data.terraform_remote_state.dns[0].outputs.domain_name, "") : var.cluster_dns
-  cluster_zone_id = join("", data.aws_route53_zone.cluster_zone.*.zone_id)
+  cluster_dns     = var.cluster_dns
+  cluster_zone_id = var.cluster_zone_id
 
   public_subnet_ids    = length(var.public_subnet_ids) > 0 ? var.public_subnet_ids : try(data.terraform_remote_state.vpc[0].outputs.public_subnet_ids, [])
   private_subnet_ids   = length(var.private_subnet_ids) > 0 ? var.private_subnet_ids : try(data.terraform_remote_state.vpc[0].outputs.private_subnet_ids, [])

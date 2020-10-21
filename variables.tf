@@ -11,6 +11,12 @@ variable "namespace" {
   description = "Namespace the cluster belongs to"
 }
 
+variable "name" {
+  type        = string
+  default     = ""
+  description = "Name to inject into resource naming scheme"
+}
+
 variable "attributes" {
   type        = list
   default     = []
@@ -177,6 +183,12 @@ variable "secrets_path" {
   description = "Path to put CA and SSH keys into"
 }
 
+variable "public_key_path" {
+  type        = string
+  default     = null
+  description = "Path to read SSH public key from. If provided a keypair will NOT be generated."
+}
+
 variable "cluster_config_path" {
   type        = string
   default     = "/cluster_configs"
@@ -217,6 +229,12 @@ variable "cluster_dns" {
   type        = string
   default     = ""
   description = "The DNS zone to use for the cluster if it differs from cluster name"
+}
+
+variable "cluster_zone_id" {
+  type        = string
+  default     = null
+  description = "The DNS zone ID to use"
 }
 
 variable "cluster_dns_type" {

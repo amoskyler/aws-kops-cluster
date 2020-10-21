@@ -52,6 +52,12 @@ spec:
     - ${instance}
   %{ endfor ~}
 %{ endif }
+%{if length(node_taints) > 0 ~}
+  taints:
+%{ for taint in node_taints ~}
+  - ${taint}
+%{ endfor ~}
+%{ endif ~}
   nodeLabels:
     Namespace: ${namespace}
     Stage: ${stage}
@@ -60,6 +66,9 @@ spec:
     InstanceGroup: ${instance_group_name}
     kops.k8s.io/cluster: ${cluster_name}
     kops.k8s.io/instancegroup: ${instance_group_name}
+%{ for label, label_value in extra_node_labels ~}
+    ${label}: ${label_value}
+%{ endfor ~}
 %{ if autospotting_enabled ~}
     spot: "true"
 %{ endif ~}

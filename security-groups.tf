@@ -9,13 +9,6 @@ resource "aws_security_group" "masters" {
   tags        = module.masters_sg_label.tags
   description = "Controls traffic to the master nodes of cluster ${local.cluster_name}"
   vpc_id      = local.vpc_id
-
-  # egress {
-  #   to_port     = 0
-  #   from_port   = 0
-  #   protocol    = "-1"
-  #   cidr_blocks = ["0.0.0.0/0"]
-  # }
 }
 
 resource "aws_security_group_rule" "masters_ingress" {

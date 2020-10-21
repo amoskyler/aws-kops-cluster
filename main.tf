@@ -23,15 +23,9 @@ locals {
   aws_account_id = var.aws_account_id == "" ? data.aws_caller_identity.current.account_id : var.aws_account_id
 }
 
-data "aws_route53_zone" "cluster_zone" {
-  count = local.cluster_dns == "" ? 0 : 1
-  # name         = format("%s.", local.cluster_dns)
-  name         = local.cluster_dns
-  private_zone = var.cluster_dns_type == "Private"
-}
-
 module "label" {
   source     = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.19.2"
+  name       = var.name
   namespace  = var.namespace
   stage      = var.stage
   delimiter  = var.delimiter
@@ -42,5 +36,5 @@ module "label" {
 module "kops_label" {
   source  = "git::https://github.com/cloudposse/terraform-null-label.git?ref=tags/0.19.2"
   context = module.label.context
-  name    = "kops"
+  # name    = "kops"
 }

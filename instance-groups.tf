@@ -3,19 +3,32 @@ locals {
   worker_node_min_count = length(flatten([
     for e in var.instance_groups.*.count_min : range(e)
   ]))
+
+  instance_group_by_zone = flatten([
+    for idx, ig in var.instance_groups : [for i in range(lookup(ig, "max_availability_zones", var.max_availability_zones)) : {
+      zoned_name = format(
+        "%s-%s",
+        ig.name,
+        element(data.aws_availability_zones.available.names, i)
+      )
+      config     = ig
+      group      = ig.name
+      subnet_ids = lookup(ig, "subnet_ids", [element(data.aws_availability_zones.available.names, i)])
+    }]
+  ])
 }
 
-# Deploy seperate IGs per AWS Availability Zone
-# This usually helps the cluster autoscaler 
+output "instance_group_by_zone" {
+  value = local.instance_group_by_zone
+}
+
 data "null_data_source" "instance_groups" {
-  count = length(var.instance_groups) * var.max_availability_zones
+  for_each = {
+    for k, v in local.instance_group_by_zone : v.zoned_name => v
+  }
 
   inputs = {
-    name = format(
-      "%s-%s",
-      lookup(var.instance_groups[floor(count.index / 3)], "name"),
-      element(data.aws_availability_zones.available.names, count.index % var.max_availability_zones)
-    )
+    name = each.value.zoned_name
 
     rendered = templatefile("${path.module}/templates/instance-group.yaml.tpl", {
       cluster_name           = local.cluster_name
@@ -23,32 +36,32 @@ data "null_data_source" "instance_groups" {
       stage                  = var.stage
       region                 = var.region
       node_role              = "Node"
-      public_ip              = lookup(var.instance_groups[floor(count.index / 3)], "associate_public_ip", false)
+      extra_node_labels      = lookup(each.value.config, "extra_node_labels", {})
+      node_taints            = lookup(each.value.config, "node_taints", [])
+      public_ip              = lookup(each.value.config, "associate_public_ip", false)
       autoscaler             = true
-      image                  = lookup(var.instance_groups[floor(count.index / 3)], "image", "")
-      instance_name          = lookup(var.instance_groups[floor(count.index / 3)], "name")
-      instance_type          = lookup(var.instance_groups[floor(count.index / 3)], "instance_type")
-      instance_max           = lookup(var.instance_groups[floor(count.index / 3)], "count_max", 5)
-      instance_min           = local.require_one_worker_node && count.index == 0 ? 1 : lookup(var.instance_groups[floor(count.index / 3)], "count_min", 1)
-      external_lb_name       = lookup(var.instance_groups[floor(count.index / 3)], "loadbalancer_name", "")
-      external_target_arn    = lookup(var.instance_groups[floor(count.index / 3)], "loadbalancer_target_arn", "")
-      storage_type           = lookup(var.instance_groups[floor(count.index / 3)], "storage_type", "gp2")
-      storage_iops           = lookup(var.instance_groups[floor(count.index / 3)], "storage_iops", 0)
-      storage_in_gb          = lookup(var.instance_groups[floor(count.index / 3)], "storage_in_gb", 32)
-      security_group         = lookup(var.instance_groups[floor(count.index / 3)], "security_group", "")
-      subnet_type            = lookup(var.instance_groups[floor(count.index / 3)], "subnet", "private")
-      subnet_ids             = [element(data.aws_availability_zones.available.names, count.index % var.max_availability_zones)]
-      autospotting_enabled   = lookup(var.instance_groups[floor(count.index / 3)], "autospotting_enabled", true)
-      autospotting_on_demand = lookup(var.instance_groups[floor(count.index / 3)], "autospotting_on_demand", 0)
-      autospotting_max_price = lookup(var.instance_groups[floor(count.index / 3)], "autospotting_max_price", 0.03)
-      autospotting_instances = distinct(lookup(var.instance_groups[floor(count.index / 3)], "autospotting_instances", [lookup(var.instance_groups[floor(count.index / 3)], "instance_type")]))
-
-      instance_group_name = format(
-        "%s-%s",
-        lookup(var.instance_groups[floor(count.index / 3)], "name"),
-        element(data.aws_availability_zones.available.names, count.index % var.max_availability_zones)
-      )
+      image                  = lookup(each.value.config, "image", "")
+      instance_name          = lookup(each.value.config, "name")
+      instance_type          = lookup(each.value.config, "instance_type")
+      instance_max           = lookup(each.value.config, "count_max", 5)
+      instance_min           = lookup(each.value.config, "count_min", 1)
+      external_lb_name       = lookup(each.value.config, "loadbalancer_name", "")
+      external_target_arn    = lookup(each.value.config, "loadbalancer_target_arn", "")
+      storage_type           = lookup(each.value.config, "storage_type", "gp2")
+      storage_iops           = lookup(each.value.config, "storage_iops", 0)
+      storage_in_gb          = lookup(each.value.config, "storage_in_gb", 32)
+      security_group         = lookup(each.value.config, "security_group", "")
+      subnet_type            = lookup(each.value.config, "subnet", "private")
+      subnet_ids             = each.value.subnet_ids
+      autospotting_enabled   = lookup(each.value.config, "autospotting_enabled", true)
+      autospotting_on_demand = lookup(each.value.config, "autospotting_on_demand", 0)
+      autospotting_max_price = lookup(each.value.config, "autospotting_max_price", 0.03)
+      autospotting_instances = distinct(lookup(each.value.config, "autospotting_instances", [lookup(each.value.config, "instance_type")]))
+      instance_group_name    = each.value.zoned_name
     })
+
+    name  = each.key
+    group = each.value.group
   }
 }
 
@@ -85,6 +98,8 @@ data "null_data_source" "master_instance_groups" {
       storage_iops           = 0
       storage_in_gb          = 48
       node_role              = "Master"
+      extra_node_labels      = {}
+      node_taints            = []
       instance_name          = "master"
       instance_max           = 1
       instance_min           = 1
@@ -123,6 +138,8 @@ data "null_data_source" "bastion_instance_group" {
       subnet_type            = "utility"
       instance_group_name    = "bastion"
       node_role              = "Bastion"
+      extra_node_labels      = {}
+      node_taints            = []
       instance_name          = "bastion"
       instance_type          = var.bastion_machine_type
       instance_max           = 1
